@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dochádzkový Terminál - {{ prevadzka.nazov }}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; margin: 0; }
+        .terminal { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: -10px; }
+        #display { width: 100%; font-size: 2.5em; text-align: center; padding: 10px; box-sizing: border-box; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px; letter-spacing: 5px; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .keypad button { font-size: 1.8em; padding: 20px; border: none; border-radius: 8px; background-color: #e9ecef; cursor: pointer; transition: background-color 0.2s; }
+        .keypad button:active { background-color: #ced4da; }
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .actions button { font-size: 1.2em; padding: 15px; border: none; border-radius: 8px; color: white; cursor: pointer; transition: background-color 0.2s; }
+        .prichod { background-color: #28a745; }
+        .odchod { background-color: #dc3545; }
+        .ostatne { background-color: #007bff; }
+        #message { margin-top: 20px; font-size: 1.2em; min-height: 30px; font-weight: bold; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <h1>Dochádzkový Terminál</h1>
+        <h2>{{ prevadzka.nazov }}</h2>
+        <input type="text" id="display" readonly>
+        <div class="keypad">
+            <button onclick="appendNum('1')">1</button>
+            <button onclick="appendNum('2')">2</button>
+            <button onclick="appendNum('3')">3</button>
+            <button onclick="appendNum('4')">4</button>
+            <button onclick="appendNum('5')">5</button>
+            <button onclick="appendNum('6')">6</button>
+            <button onclick="appendNum('7')">7</button>
+            <button onclick="appendNum('8')">8</button>
+            <button onclick="appendNum('9')">9</button>
+            <button style="grid-column: 2" onclick="appendNum('0')">0</button>
+            <button style="font-size: 1.2em;" onclick="clearDisplay()">Zmazať</button>
+        </div>
+        <div class="actions">
+            <button class="prichod" onclick="sendAction('PRICHOD')">Príchod</button>
+            <button class="odchod" onclick="sendAction('ODCHOD')">Odchod</button>
+            <button class="ostatne" onclick="sendAction('OBED_START')">Obed zaciatok</button>
+            <button class="ostatne" onclick="sendAction('OBED_END')">Obed koniec</button>
+            <button class="ostatne" onclick="sendAction('LEKAR_START')">Lekár Odchod</button>
+            <button class="ostatne" onclick="sendAction('LEKAR_KONIEC')">Lekár Príchod</button>
+        </div>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+        const messageEl = document.getElementById('message');
+        const KOD_PREVADZKY = "{{ prevadzka.kod_prevadzky }}";
+
+        function appendNum(num) {
+            display.value += num;
+        }
+
+        function clearDisplay() {
+            display.value = '';
+        }
+
+        function showMessage(text, type) {
+            messageEl.textContent = text;
+            messageEl.className = type;
+            setTimeout(() => {
+                messageEl.textContent = '';
+                messageEl.className = '';
+            }, 4000);
+        }
+
+        async function sendAction(actionType) {
+            const osobneCislo = display.value;
+            if (osobneCislo.length === 0) {
+                showMessage("Zadajte osobné číslo.", "error");
+                return;
+            }
+
+            const data = {
+                osobne_cislo: osobneCislo,
+                typ_zaznamu: actionType,
+                kod_prevadzky: KOD_PREVADZKY
+            };
+
+            try {
+                const response = await fetch('/api/zaznam', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(result.message, 'success');
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage("Chyba pripojenia k serveru.", "error");
+            } finally {
+                clearDisplay();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Dochádzky</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; margin: 0; }
+        .container { background: white; padding: 30px 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
+        h1, h2 { color: #333; }
+        h2 { font-size: 1.2em; color: #555; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px;}
+        form { display: flex; flex-direction: column; gap: 20px; align-items: center; }
+        .form-group { display: flex; flex-direction: column; align-items: flex-start; }
+        label { margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="date"] { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; }
+        .button { font-size: 1.1em; padding: 12px 25px; border: none; border-radius: 8px; color: white; cursor: pointer; text-decoration: none; display: inline-block; margin-bottom: 20px; }
+        .btn-primary { background-color: #007bff; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-secondary { background-color: #28a745; }
+        .btn-secondary:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Export Dochádzky</h1>
+
+        <h2>Rýchly export</h2>
+        <a href="/export?predefined=today" class="button btn-secondary">Stiahnuť dnešnú dochádzku</a>
+        <h2>Vlastný výber obdobia</h2>
+        <form action="/export" method="GET">
+            <div class="form-group">
+                <label for="start_date">Dátum od:</label>
+                <input type="date" id="start_date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">Dátum do:</label>
+                <input type="date" id="end_date" name="end_date" required>
+            </div>
+            <button type="submit" class="button btn-primary">Stiahnuť CSV</button>
+        </form>
+    </div>
+</body>
+</html>
