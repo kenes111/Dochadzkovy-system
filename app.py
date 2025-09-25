@@ -104,7 +104,7 @@ def terminal_view(kod_prevadzky):
     return render_template('terminal.html', prevadzka=prevadzka)
 
 
-# Vytvorenie db + test data
+# Vytvorenie db + testovacie data
 def setup_database(app):
     with app.app_context():
         db.create_all()
