@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import enum
 import csv
-# config
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'dochadzka.db')
@@ -13,7 +13,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# Definicia udalosti
+# Udalosti
 class TypZaznamu(enum.Enum):
     PRICHOD = "Príchod"
     ODCHOD = "Odchod"
@@ -48,7 +48,7 @@ class Zaznam(db.Model):
     prevadzka_id = db.Column(db.Integer, db.ForeignKey('prevadzka.id'), nullable=False)
 
 
-# --- API Endpoint pre Terminál ---
+# TERMINAL API
 @app.route('/api/zaznam', methods=['POST'])
 def pridaj_zaznam():
 
@@ -68,7 +68,7 @@ def pridaj_zaznam():
         typ_enum = TypZaznamu[data['typ_zaznamu']]
     except KeyError:
         return jsonify({"status": "error", "message": "Neplatný typ záznamu"}), 400
-
+    # Definicia posledneho zaznamu
     posledny_zaznam = Zaznam.query.filter_by(zamestnanec_id=zamestnanec.id).order_by(
         Zaznam.casova_peciatka.desc()).first()
 
@@ -78,7 +78,7 @@ def pridaj_zaznam():
                             "message": f"Chyba: Nie je možné zaznamenať odchod bez predchádzajúceho príchodu.(posledná akcia: {posledny_zaznam.typ_zaznamu.value})."}), 409  # 409 Conflict
 
     if typ_enum == TypZaznamu.PRICHOD:
-        # Ak posledný záznam bol príchod (a nie odchod), zamestnanec je už pravdepodobne v práci
+
         if posledny_zaznam and posledny_zaznam.typ_zaznamu != TypZaznamu.ODCHOD:
             return jsonify({"status": "error",
                             "message": f"Chyba: Zamestnanec je už v práci (posledná akcia: {posledny_zaznam.typ_zaznamu.value})."}), 410
@@ -97,14 +97,14 @@ def pridaj_zaznam():
     }), 201
 
 
-# --- Jednoduché rozhranie pre tablet ---
+# Web Terminal
 @app.route('/terminal/<kod_prevadzky>')
 def terminal_view(kod_prevadzky):
     prevadzka = Prevadzka.query.filter_by(kod_prevadzky=kod_prevadzky).first_or_404()
     return render_template('terminal.html', prevadzka=prevadzka)
 
 
-# --- Inicializácia databázy ---
+# Vytvorenie db + test data
 def setup_database(app):
     with app.app_context():
         db.create_all()
@@ -122,17 +122,17 @@ def setup_database(app):
             db.session.commit()
 
 
-# --- 1. Funkcia na zobrazenie stránky s formulárom ---
+# web reporty
 @app.route('/report')
 def report_form():
     """Zobrazí stránku s formulárom na výber obdobia pre export."""
     return render_template('report.html')
 
 
-# --- 2. Funkcia, ktorá spracuje export a vráti CSV súbor ---
+# CSV vystup
 @app.route('/export')
 def export_csv():
-    """Vygeneruje a vráti CSV súbor so záznamami za zvolené obdobie."""
+
 
     if request.args.get('predefined') == 'today':
         today_str = datetime.now().strftime('%Y-%m-%d')
@@ -161,31 +161,30 @@ def export_csv():
 
     vsetky_zaznamy = zaznamy_query.all()
 
-    # --- KROK 1: Zistenie finálneho statusu pre každého zamestnanca ---
+    # Aktualny stav zamestnanca
     finalne_statusy = {}
     for zaznam in vsetky_zaznamy:
         # Pre každého zamestnanca si postupne prepisujeme jeho posledný záznam.
         # Keďže sú záznamy zoradené podľa času, na konci slučky zostane v slovníku ten posledný.
         finalne_statusy[zaznam.zamestnanec_id] = zaznam.typ_zaznamu
 
-    # Pomocný slovník na preklad statusu do zrozumiteľnej podoby
-    # Definujeme, ktoré typy záznamov znamenajú, že je zamestnanec "V práci"
-    statusy_v_praci = {TypZaznamu.PRICHOD, TypZaznamu.LEKAR_KONIEC}  # V budúcnosti sem môžete pridať napr. OBED_KONIEC
+    # Definicia zmestnanec v praci
+    statusy_v_praci = {TypZaznamu.PRICHOD, TypZaznamu.LEKAR_KONIEC, TypZaznamu.OBED_END}
 
-    # --- KROK 2: Príprava CSV a pridanie nového stĺpca ---
+    # Pridanie "zamestnanec v praci" do CSV
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # Pridáme nový stĺpec do hlavičky
+
     writer.writerow(['ID Záznamu', 'Osobné číslo', 'Meno', 'Priezvisko', 'Prevádzka', 'Časová Pečiatka', 'Typ Záznamu',
                      'Aktuálny Stav'])
 
-    # Zápis riadkov
+
     for zaznam in vsetky_zaznamy:
-        # Zistíme finálny status pre zamestnanca v aktuálnom riadku
+
         posledny_zaznam_typ = finalne_statusy.get(zaznam.zamestnanec_id)
 
-        # Preložíme status na text
+
         aktualny_stav = "V práci" if posledny_zaznam_typ in statusy_v_praci else "Mimo práce"
 
         writer.writerow([
@@ -196,7 +195,7 @@ def export_csv():
             zaznam.prevadzka.nazov,
             zaznam.casova_peciatka.strftime('%Y-%m-%d %H:%M:%S'),
             zaznam.typ_zaznamu.value,
-            aktualny_stav  # Pridáme nový stĺpec do riadku
+            aktualny_stav
         ])
 
     output.seek(0)
